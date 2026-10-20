@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <style>
+    :root { --gt-gold: #b3a369; --bg-color: #f4f4f4; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); padding: 10px; margin: 0; color: #333; }
+    h2 { text-align: center; color: var(--gt-gold); }
+    .header-controls { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; }
+    select, input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+    input[type="checkbox"] { transform: scale(1.5); margin-right: 15px; margin-top: 2px; }
+    
+    .team-banner { background: #e9ecef; border-left: 5px solid var(--gt-gold); padding: 12px; border-radius: 6px; font-size: 14px; margin-top: 15px; line-height: 1.5; }
+    .team-banner span { display: block; margin-bottom: 4px; }
+    
+    .error-banner { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; }
+    .team-error { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; padding: 10px; border-radius: 6px; margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center; }
+
+    .btn-group { display: flex; gap: 5px; flex-wrap: wrap; }
+    .btn-option { flex: 1; padding: 10px 5px; background: #fff; border: 1px solid #bbb; border-radius: 4px; font-size: 14px; cursor: pointer; text-align: center; font-weight: bold; color: #333; }
+    .btn-option.active { background: #003057; color: white; border-color: #003057; }
+    .white-team .btn-option.active { background: #333; border-color: #333; }
+
+    .team-card { padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .yellow-team { background-color: #FFD700; color: #000; }
+    .black-team { background-color: #222222; color: #FFF; }
+    .blue-team { background-color: #005A9C; color: #FFF; }
+    .white-team { background-color: #FFFFFF; color: #000; border: 1px solid #ccc; }
+    .team-name-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid currentColor; padding-bottom: 5px; }
+    
+    .manual-input-box { border: 2px dashed currentColor !important; background: rgba(255,255,255,0.8); font-weight: bold; text-align: center; margin-bottom: 15px; }
+    
+    .task-row { display: flex; align-items: center; margin-bottom: 15px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; flex-wrap: wrap; gap: 10px; }
+    .white-team .task-row, .yellow-team .task-row { background: rgba(0,0,0,0.05); }
+    .task-label { flex: 1; font-size: 15px; min-width: 150px; }
+    .task-input { flex-shrink: 0; min-width: 120px; }
+    
+    .section-header { text-align: center; font-size: 14px; letter-spacing: 1px; margin: 20px 0 10px 0; border-bottom: 1px solid currentColor; padding-bottom: 5px; opacity: 0.8; }
+    .running-total { font-size: 20px; font-weight: bold; text-align: right; margin-top: 15px; padding-top: 10px; border-top: 2px dashed currentColor; }
+    .submit-btn { width: 100%; background-color: #003057; color: white; padding: 15px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; margin-top: 10px; margin-bottom: 40px; cursor: pointer; }
+    .submit-btn:disabled { background-color: #888; cursor: not-allowed; }
+    .next-btn { width: 100%; background-color: var(--gt-gold); color: black; padding: 15px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; margin-top: 20px; cursor: pointer; }
+    .hidden { display: none !important; }
+    #successScreen { text-align: center; margin-top: 50px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    
+    .result-row { display: flex; justify-content: space-between; font-size: 18px; margin: 10px 0; padding: 12px; border-radius: 6px; font-weight: bold; align-items: center; }
+    .result-row strong { font-size: 20px; }
+    .result-yellow { background-color: #FFD700; color: #000; border: 1px solid #cca100; } 
+    .result-black { background-color: #222222; color: #FFF; border: 1px solid #000; } 
+    .result-white { background-color: #FFFFFF; color: #000; border: 2px solid #ccc; } 
+    .result-blue { background-color: #005A9C; color: #FFF; border: 1px solid #003b66; } 
+    
+    .tiebreaker-note { margin-top: 20px; padding: 15px; background-color: #FFF9C4; border-left: 5px solid #FBC02D; font-size: 14px; text-align: left; color: #333; font-weight: bold; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <div id="mainApp">
+    <h2>ME 2110 Sprint 3 Platform</h2>
+    
+    <div class="header-controls">
+      <div class="form-group">
+        <label for="sectionSelect">Section</label>
+        <select id="sectionSelect" onchange="updateRounds(); fetchMatchData();">
+          <option value="" disabled selected>Select Section...</option>
+          <script>for(let i=1;i<=12;i++){let s="A"+(i<10?"0"+i:i);document.write(`<option value="${s}">${s}</option>`);}</script>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="roundSelect">Round</label>
+        <select id="roundSelect" onchange="fetchMatchData();"><option value="" disabled selected>Select Round...</option></select>
+      </div>
+      <div id="teamOverviewBanner" class="team-banner hidden"></div>
+    </div>
+
+    <div id="teamCardsContainer">
+      <script>
+        const teamColors = [
+          {id: 'yellow', name: 'Yellow', class: 'yellow-team'},
+          {id: 'black', name: 'Black', class: 'black-team'},
+          {id: 'white', name: 'White', class: 'white-team'},
+          {id: 'blue', name: 'Blue', class: 'blue-team'}
+        ];
+
+        function genOptions(max) {
+          let opts = '';
+          for(let i=0; i<=max; i++) opts += `<option value="${i}">${i}</option>`;
+          return opts;
+        }
+
+        let cardsHTML = '';
+        teamColors.forEach(c => {
+          cardsHTML += `
+          <div class="team-card ${c.class}">
+            <div class="team-name-header" id="team_name_header_${c.id}" data-team-id="None">${c.name} Zone (Team Name Here)</div>
+            
+<div class="task-row">
+              <input type="checkbox" id="dq_${c.id}" onchange="calculateScore('${c.id}')">
+              <label for="dq_${c.id}" class="task-label">Did the robot DQ?</label>
+            </div>
+            <div id="dq_reason_container_${c.id}" class="form-group hidden">
+              <input type="text" id="dq_reason_${c.id}" placeholder="Brief reason for DQ...">
+            </div>
+            
+            <div class="task-row">
+              <div class="task-label">Activation Status</div>
+              <div class="task-input btn-group" id="activation_status_${c.id}" data-value="None">
+                <button type="button" class="btn-option active" onclick="setBtn(this, 'activation_status_${c.id}', 'None')">None</button>
+                <button type="button" class="btn-option" onclick="setBtn(this, 'activation_status_${c.id}', 'Activate')">Activate</button>
+                <button type="button" class="btn-option" onclick="setBtn(this, 'activation_status_${c.id}', 'Leave')">Act. & Leave Dock</button>
+              </div>
+            </div>
+
+            <div class="section-header">----- GOLD & JEWELS (SHARED) -----</div>
+            <div class="task-row"><div class="task-label">Gold on mound (+10)</div><div class="task-input"><select id="gold_top_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(10)}</select></div></div>
+            <div class="task-row"><div class="task-label">Gold surrounding (+4)</div><div class="task-input"><select id="gold_zone_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(10)}</select></div></div>
+            <div class="task-row"><div class="task-label">Jewels on mound (+15)</div><div class="task-input"><select id="jewel_top_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(5)}</select></div></div>
+            <div class="task-row"><div class="task-label">Jewels surrounding (+9)</div><div class="task-input"><select id="jewel_zone_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(5)}</select></div></div>
+
+            <div class="section-header">----- RUNNING UP THE FLAG -----</div>
+            <div class="task-row"><div class="task-label">Flag placement</div><div class="task-input"><select id="flag_${c.id}" onchange="calculateScore('${c.id}')">
+              <option value="None">None / Invalid (0)</option><option value="First">1st (+40)</option><option value="Second">2nd (+28)</option><option value="Third">3rd (+17)</option><option value="Fourth">4th (+7)</option>
+            </select></div></div>
+
+            <div class="section-header">----- CANNONBALLS (SHARED) -----</div>
+            <div class="task-row"><div class="task-label">Black cannonballs (+9 each)</div><div class="task-input"><select id="black_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(16)}</select></div></div>
+            <div class="task-row"><div class="task-label">White supply parcels (−10 each)</div><div class="task-input"><select id="white_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(4)}</select></div></div>
+
+            <div class="section-header">----- MERMAIDS (2 PER TEAM) -----</div>
+            <div class="task-row"><div class="task-label">Mermaids toppled (+12 each)</div><div class="task-input"><select id="mer_top_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(2)}</select></div></div>
+            <div class="task-row"><div class="task-label">Mermaids moved off mark (+5 each)</div><div class="task-input"><select id="mer_moved_${c.id}" onchange="calculateScore('${c.id}')">${genOptions(2)}</select></div></div>
+
+            <div class="section-header">----- DAVY JONES' HEART (NOT CUMULATIVE) -----</div>
+            <div class="task-row"><div class="task-label">Highest achieved outcome</div><div class="task-input"><select id="davy_${c.id}" onchange="calculateScore('${c.id}')">
+              <option value="None">None (0)</option><option value="ChestShip">Chest on ship (+11)</option>
+              <option value="ChestDock">Chest back at docks (+32)</option><option value="HeartShip">Heart on ship (+39)</option>
+              <option value="HeartDock">Heart back at docks (+61)</option>
+            </select></div></div>
+
+            <div class="running-total">Running Total: <span id="score_display_${c.id}">0</span></div>
+            <div id="team_error_${c.id}" class="team-error hidden"></div>
+          </div>`;
+        });
+        document.write(cardsHTML);
+      </script>
+    </div>
+
+    <div id="validationWarning" class="error-banner hidden"></div>
+
+    <button id="mainSubmitBtn" class="submit-btn" disabled onclick="submitScores()">Submit Scores to Drive</button>
+  </div>
+
+  <div id="successScreen" class="hidden">
+    <h2 id="successMessage">Scoring complete!</h2>
+    <p id="successSubtext">Here are the final match rankings:</p>
+    <div id="resultsContainer" style="text-align: left; margin-bottom: 20px;"></div>
+    <div id="tiebreakerContainer" class="hidden"></div>
+    <button class="next-btn" onclick="resetForm()">Press to continue with next round scoring</button>
+  </div>
+
+  <script>
+    var POINTS = {activate:1,leaveDock:10,flag:{None:0,First:40,Second:28,Third:17,Fourth:7},davy:{None:0,ChestShip:11,ChestDock:32,HeartShip:39,HeartDock:61}};
+    var colors = ['yellow', 'black', 'white', 'blue'];
+
+    function setBtn(clickedBtn, groupId, value) {
+      var group = document.getElementById(groupId);
+      group.dataset.value = value;
+      var buttons = group.querySelectorAll('.btn-option');
+      buttons.forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      var color = groupId.split('_').pop();
+      calculateScore(color);
+    }
+
+    // Every section has 7 teams and 7 rounds; retrieve and validate from the backend.
+    function updateRounds() {
+      var sec=document.getElementById('sectionSelect').value;
+      var rounds=document.getElementById('roundSelect');
+      rounds.innerHTML='<option value="" disabled selected>Select Round...</option>';
+      document.getElementById('teamOverviewBanner').classList.add('hidden');
+      document.getElementById('mainSubmitBtn').disabled=true;
+      if(!sec) return;
+      google.script.run.withSuccessHandler(function(list){
+        if(document.getElementById('sectionSelect').value!==sec) return;
+        list.forEach(function(r){var o=document.createElement('option');o.value=r;o.textContent=r;rounds.appendChild(o);});
+      }).withFailureHandler(function(e){alert('Cannot load rounds: '+e.message);}).getAvailableRounds(sec);
+    }
+
+    function fetchMatchData() {
+      var sec=document.getElementById('sectionSelect').value;
+      var round=document.getElementById('roundSelect').value;
+      var btn=document.getElementById('mainSubmitBtn');
+      var banner=document.getElementById('teamOverviewBanner');
+      btn.disabled=true;banner.classList.add('hidden');
+      colors.forEach(function(c){
+        var h=document.getElementById('team_name_header_'+c);
+        h.dataset.teamId='None';h.innerText=c.charAt(0).toUpperCase()+c.slice(1)+' Zone (Team Name Here)';
+      });
+      if(!sec||!round) return;
+      btn.innerText='Loading Teams...';
+      google.script.run.withSuccessHandler(function(data){
+        if(sec!==document.getElementById('sectionSelect').value||round!==document.getElementById('roundSelect').value) return;
+        if(!data){btn.innerText='Waiting for valid match...';alert('No match found for that section and round.');return;}
+        var html='<strong>'+sec+' - '+round+' Roster:</strong>';
+        colors.forEach(function(c){
+          var h=document.getElementById('team_name_header_'+c);
+          h.dataset.teamId=data[c].id;
+          h.innerText=c.charAt(0).toUpperCase()+c.slice(1)+' Zone: '+data[c].name;
+          html+='<span>['+c.toUpperCase()+'] '+data[c].name+' ('+data[c].id+')</span>';
+        });
+        banner.innerHTML=html;banner.classList.remove('hidden');
+        btn.innerText='Submit Scores to Drive';validateGlobalResources();
+      }).withFailureHandler(function(e){btn.innerText='Waiting for valid match...';alert(e.message);}).getMatchData(sec,round);
+    }
+
+    function validateGlobalResources() {
+      var totals={gold:0,jewel:0,black:0,white:0};
+      var flagAssignments={};
+      var errors=[];
+      var hasErrors=false;
+      
+      colors.forEach(function(c) {
+        var id=document.getElementById('team_name_header_'+c).dataset.teamId;
+        var valid=id && !['None','TBD','Empty',''].includes(id);
+        var teamErrors=[];
+        if(valid) {
+          if(!document.getElementById('dq_'+c).checked && document.getElementById('activation_status_'+c).dataset.value==='None')
+            teamErrors.push('⚠️ Select activation status or mark DQ.');
+          var mer=readNum('mer_top',c)+readNum('mer_moved',c);
+          if(mer>2) teamErrors.push('⚠️ Only 2 mermaids per team.');
+          var flag=document.getElementById('flag_'+c).value;
+          if(flag!=='None') {
+            if(flagAssignments[flag]) teamErrors.push('⚠️ Flag placement already assigned to another team.');
+            flagAssignments[flag]=true;
+          }
+        }
+        var teamBox=document.getElementById('team_error_'+c);
+        teamBox.innerHTML=teamErrors.join('<br>');
+        teamBox.classList.toggle('hidden',teamErrors.length===0);
+        if(teamErrors.length) hasErrors=true;
+        if(valid) {
+          totals.gold+=readNum('gold_top',c)+readNum('gold_zone',c);
+          totals.jewel+=readNum('jewel_top',c)+readNum('jewel_zone',c);
+          totals.black+=readNum('black',c);
+          totals.white+=readNum('white',c);
+        }
+      });
+      [['gold',10],['jewel',5],['black',16],['white',4]].forEach(function(entry) {
+        if(totals[entry[0]]>entry[1]) errors.push('⚠️ Shared '+entry[0]+' limit exceeded: '+totals[entry[0]]+' / '+entry[1]);
+      });
+      var warning=document.getElementById('validationWarning');
+      warning.innerHTML=errors.join('<br>');
+      warning.classList.toggle('hidden',errors.length===0);
+      if(errors.length) hasErrors=true;
+      var btn=document.getElementById('mainSubmitBtn');
+      if(hasErrors) btn.disabled=true;
+      else if(btn.innerText==='Submit Scores to Drive'||btn.innerText==='Submit Flex Round Scores') btn.disabled=false;
+      return !hasErrors;
+    }
+
+    function readNum(prefix,color) {
+      return Number(document.getElementById(prefix+'_'+color).value)||0;
+    }
+
+    function calculateScore(color) {
+      var dq=document.getElementById('dq_'+color).checked;
+      document.getElementById('dq_reason_container_'+color).classList.toggle('hidden',!dq);
+      var act=document.getElementById('activation_status_'+color).dataset.value;
+      var flag=document.getElementById('flag_'+color).value;
+      var davy=document.getElementById('davy_'+color).value;
+      var total=(act==='None'?0:POINTS.activate+(act==='Leave'?POINTS.leaveDock:0))+
+        readNum('gold_top',color)*10+readNum('gold_zone',color)*4+
+        readNum('jewel_top',color)*15+readNum('jewel_zone',color)*9+
+        POINTS.flag[flag]+readNum('black',color)*9-readNum('white',color)*10+
+        readNum('mer_top',color)*12+readNum('mer_moved',color)*5+POINTS.davy[davy];
+      document.getElementById('score_display_'+color).innerText=dq?'0 (DQ)':total;
+      validateGlobalResources();
+      return dq?0:total;
+    }
+
+    function submitScores() {
+      var btn=document.getElementById('mainSubmitBtn');
+      var sec=document.getElementById('sectionSelect').value;
+      var round=document.getElementById('roundSelect').value;
+      if(!sec||!round){alert('Select a section and round.');return;}
+      if(!validateGlobalResources()){alert('Fix validation warnings before submitting.');return;}
+      var results=[],teams=[];
+      colors.forEach(function(c){
+        var header=document.getElementById('team_name_header_'+c);
+        var id=header.dataset.teamId||'None';
+        var name=header.innerText.split(': ')[1]||'Empty';
+        var act=document.getElementById('activation_status_'+c).dataset.value;
+        var dq=document.getElementById('dq_'+c).checked;
+        var score=calculateScore(c);
+        var flag=document.getElementById('flag_'+c).value;
+        var davy=document.getElementById('davy_'+c).value;
+        var goldTop=readNum('gold_top',c),goldZone=readNum('gold_zone',c);
+        var jewelTop=readNum('jewel_top',c),jewelZone=readNum('jewel_zone',c);
+        var black=readNum('black',c),white=readNum('white',c);
+        var merTop=readNum('mer_top',c),merMoved=readNum('mer_moved',c);
+        var weights={tier1:POINTS.davy[davy],tier2:POINTS.flag[flag],
+          tier3:merTop*12+merMoved*5,tier4:black*9-white*10,
+          tier5:goldTop*10+goldZone*4+jewelTop*15+jewelZone*9};
+        results.push({name:name,color:c,scoreValue:dq?Number.NEGATIVE_INFINITY:score,
+          displayText:dq?'DQ (0)':String(score),weights:weights});
+        teams.push({color:c.toUpperCase(),teamId:id,name:name,
+          activate:act!=='None',leaveDock:act==='Leave',goldTop:goldTop,goldZone:goldZone,
+          jewelTop:jewelTop,jewelZone:jewelZone,flagRank:flag,blackCannonballs:black,
+          whiteParcels:white,mermaidsToppled:merTop,mermaidsMoved:merMoved,davyOutcome:davy,
+          score:score,isDQ:dq,dqReason:document.getElementById('dq_reason_'+c).value});
+      });
+      var payload={section:sec,round:round,teams:teams};
+      btn.innerText='Saving to Database...';btn.disabled=true;
+      google.script.run.withSuccessHandler(function(){
+        var enacted=[];
+        results.sort(function(a,b){
+          if(b.scoreValue!==a.scoreValue)return b.scoreValue-a.scoreValue;
+          if(a.scoreValue===Number.NEGATIVE_INFINITY)return 0;
+          var titles=["Davy Jones' Heart",'Running Up the Flag','Mermaids','Cannonballs','Gold & Jewels'];
+          for(var i=1;i<=5;i++){var key='tier'+i;
+            if(b.weights[key]!==a.weights[key]){
+              if(!enacted.includes(titles[i-1]))enacted.push(titles[i-1]);
+              return b.weights[key]-a.weights[key];
+            }
+          }return 0;
+        });
+        var display='';
+        results.forEach(function(t){
+          if(['Empty','Empty Track','To Be Determined'].includes(t.name))return;
+          display+='<div class="result-row result-'+t.color+'"><span>'+t.name+'</span><strong>'+t.displayText+' pts</strong></div>';
+        });
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('successScreen').classList.remove('hidden');
+        document.getElementById('resultsContainer').innerHTML=display;
+        document.getElementById('successMessage').innerText='Scoring complete for '+sec+' '+round+'!';
+        var tb=document.getElementById('tiebreakerContainer');
+        tb.classList.toggle('hidden',enacted.length===0);
+        tb.innerHTML=enacted.length?'<div class="tiebreaker-note">Tiebreakers: '+enacted.join(', ')+'</div>':'';
+        btn.innerText='Submit Scores to Drive';btn.disabled=false;
+      }).withFailureHandler(function(error){
+        alert('Google Server Error: '+error.message);
+        btn.innerText='Submit Scores to Drive';btn.disabled=false;
+      }).saveScoresToSheet(payload);
+    }
+
+    function resetForm() {
+      var selects = document.querySelectorAll('select');
+      for (var i = 0; i < selects.length; i++) {
+        if(!selects[i].id.includes('Select')) selects[i].selectedIndex = 0; 
+      }
+      
+      var textInputs = document.querySelectorAll('input[type="text"]');
+      for (var j = 0; j < textInputs.length; j++) textInputs[j].value = "";
+      var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      for (var k = 0; k < checkboxes.length; k++) checkboxes[k].checked = false;
+
+      colors.forEach(function(c) {
+        document.getElementById('score_display_' + c).innerText = "0";
+        document.getElementById('dq_reason_container_' + c).classList.add('hidden');
+        document.getElementById('team_error_' + c).classList.add('hidden');
+
+        
+        var header = document.getElementById('team_name_header_' + c);
+        header.innerText = c.charAt(0).toUpperCase() + c.slice(1) + " Zone (Team Name Here)";
+        header.dataset.teamId = "None";
+
+        ['activation_status'].forEach(function(task) {
+          var group = document.getElementById(task + '_' + c);
+          var btns = group.querySelectorAll('.btn-option');
+          btns.forEach(function(b) { b.classList.remove('active'); });
+          btns[0].classList.add('active'); 
+          group.dataset.value = 'None';
+        });
+      });
+
+      document.getElementById('sectionSelect').selectedIndex = 0;
+      updateRounds();
+      document.getElementById('successScreen').classList.add('hidden');
+      document.getElementById('validationWarning').classList.add('hidden');
+      document.getElementById('tiebreakerContainer').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('mainSubmitBtn').disabled=true;
+      window.scrollTo(0,0);
+    }
+  </script>
+</body>
+</html>

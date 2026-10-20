@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <style>
+    :root { --gt-gold: #b3a369; --gt-navy: #003057; --bg-color: #f4f4f4; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); margin: 0; color: #333; overflow-x: hidden; }
+    
+    .top-nav { background-color: var(--gt-navy); display: flex; justify-content: center; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; }
+    .nav-btn { background: none; border: none; color: #aaa; font-size: 18px; font-weight: bold; margin: 0 15px; cursor: pointer; padding: 5px 10px; border-bottom: 3px solid transparent; transition: 0.3s; }
+    .nav-btn.active { color: white; border-bottom: 3px solid var(--gt-gold); }
+    .nav-btn:hover { color: white; }
+    .refresh-status { position: absolute; right: 20px; top: 18px; color: #aaa; font-size: 14px; font-style: italic; }
+
+    .view-container { padding: 20px; max-width: 1600px; margin: 0 auto; display: none; }
+    .view-container.active { display: block; }
+    
+    .split-view { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+    @media (max-width: 1100px) { .split-view { grid-template-columns: 1fr; } }
+    .split-col { background: transparent; }
+    h2 { color: var(--gt-navy); border-bottom: 2px solid var(--gt-gold); padding-bottom: 5px; margin-top: 0; }
+    
+    .schedule-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gt-gold); padding-bottom: 5px; margin-bottom: 15px; }
+    .schedule-header h2 { border: none; margin: 0; padding: 0; }
+    .manual-nav { display: flex; gap: 10px; }
+    .nav-arrow { background-color: var(--gt-navy); color: white; border: none; padding: 8px 15px; border-radius: 4px; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .nav-arrow:hover { background-color: #004b87; }
+    .nav-arrow:disabled { background-color: #ccc; cursor: not-allowed; box-shadow: none; }
+
+    .heat-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 25px; border-left: 6px solid var(--gt-navy); }
+    .heat-container.next-heat { border-left: 6px solid #ccc; opacity: 0.9; }
+    .heat-title { font-size: 24px; font-weight: bold; margin-bottom: 15px; color: var(--gt-navy); display: flex; justify-content: space-between; align-items: center; }
+    .track-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 700px) { .track-grid { grid-template-columns: 1fr; } }
+    
+    .track-card { background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid #ddd; }
+    .track-header { background: #eee; padding: 10px; text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px solid #ccc; display: flex; justify-content: space-between; align-items: center;}
+    .track-team { padding: 8px 12px; font-size: 15px; border-bottom: 1px solid #eee; font-weight: bold; display: flex; align-items: center; }
+    .track-team:last-child { border-bottom: none; }
+    
+    .result-yellow { background-color: #FFD700; color: #000; } 
+    .result-black { background-color: #222222; color: #FFF; } 
+    .result-white { background-color: #FFFFFF; color: #000; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc;} 
+    .result-blue { background-color: #005A9C; color: #FFF; } 
+    
+    .status-badge-complete { background-color: #2e7d32; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .status-badge-pending { color: #666; font-size: 13px; font-style: italic; }
+
+    .lb-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); height: fit-content; }
+    
+    .table-wrapper { max-height: 70vh; overflow-y: auto; padding-right: 5px; margin-top: 10px; }
+    .table-wrapper::-webkit-scrollbar { width: 8px; }
+    .table-wrapper::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: #aaa; border-radius: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--gt-navy); }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 8px 5px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background-color: #f9f9f9; font-weight: bold; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }
+    .rank-col { width: 30px; font-weight: bold; color: var(--gt-gold); text-align: center; }
+    .score-col { font-weight: bold; text-align: right; font-family: monospace; font-size: 16px;}
+    .cut-line-row td { text-align: center !important; color: #c62828 !important; font-weight: bold; background-color: #ffebee !important; border-top: 2px dashed #c62828 !important; border-bottom: 2px dashed #c62828 !important; letter-spacing: 2px; padding: 12px !important; }
+
+    .bracket-container { display: flex; justify-content: space-between; gap: 15px; overflow-x: auto; padding-bottom: 20px; min-width: 1400px; }
+    .bracket-col { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+    .f4-col { min-width: 220px; } 
+    
+    .col-header { text-align: center; background: var(--gt-gold); color: black; font-weight: bold; padding: 10px; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .championship-header { background: var(--gt-navy); color: white; border: 2px solid var(--gt-gold); }
+    
+    .match-list { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 10px; }
+    
+    .match-card { background: white; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
+    .match-header { background: #eee; padding: 6px 10px; font-size: 11px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; color: #555; }
+    .match-team { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #eee; }
+    
+    .team-name-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; }
+    .team-score { font-weight: bold; font-family: monospace; font-size: 13px; }
+    .pending-txt { color: #888; font-style: italic; text-align: center; padding: 15px; font-size: 13px; }
+
+    .champion-banner {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gt-navy);
+      color: white;
+      padding: 15px 40px;
+      border-radius: 4px; 
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      border: 3px solid var(--gt-gold);
+      z-index: 1000;
+      animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    .champion-title { font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: var(--gt-gold); margin-bottom: 5px; }
+    .champion-name { font-size: 28px; font-weight: 900; letter-spacing: 1px; }
+    @keyframes slideUp { 0% { bottom: -150px; opacity: 0; } 100% { bottom: 40px; opacity: 1; } }
+
+    #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; color: var(--gt-navy); z-index: 1000; }
+    .error-msg { color: #c62828; font-size: 16px; margin-top: 15px; font-weight: normal; background: #ffebee; padding: 10px 20px; border-radius: 6px; border: 1px solid #ef9a9a;}
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <button class="nav-btn active" onclick="switchView('qualifying')">Schedule & Leaderboard</button>
+    <button class="nav-btn" onclick="switchView('playoffs')">Playoff Bracket</button>
+    <span class="refresh-status" id="lastSyncTxt">Syncing...</span>
+  </div>
+
+  <div id="loading">
+    <div>Establishing Live Connection...</div>
+    <div id="errorDisplay" class="error-msg hidden"></div>
+  </div>
+
+  <div id="qualifying" class="view-container active">
+    <div class="split-view">
+      <div class="split-col">
+        <div class="schedule-header">
+          <h2>Schedule</h2>
+          <div class="manual-nav">
+            <button class="nav-arrow" id="btnPrev" onclick="changeHeat(-1)">⏪ Prev</button>
+            <button class="nav-arrow" id="btnNext" onclick="changeHeat(1)">Next ⏩</button>
+          </div>
+        </div>
+        <div id="scheduleRenderer"></div>
+      </div>
+      
+      <div class="split-col lb-container">
+        <h2>Competition Leaderboard</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th class="rank-col">#</th><th>ID</th><th>Team Name</th><th class="score-col">High Score</th></tr>
+            </thead>
+            <tbody id="leaderboardTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="playoffs" class="view-container">
+    <div class="bracket-container">
+      
+      <div class="bracket-col">
+        <div class="col-header">Round of 32</div>
+        <div class="match-list" id="r32-left"></div>
+      </div>
+      <div class="bracket-col">
+        <div class="col-header">Sweet 16</div>
+        <div class="match-list" id="s16-left"></div>
+      </div>
+      <div class="bracket-col">
+        <div class="col-header">Elite 8</div>
+        <div class="match-list" id="e8-left"></div>
+      </div>
+      
+      <div class="bracket-col f4-col">
+        <div class="col-header championship-header">Final 4 🏆</div>
+        <div class="match-list" id="f4-center"></div>
+      </div>
+      
+      <div class="bracket-col">
+        <div class="col-header">Elite 8</div>
+        <div class="match-list" id="e8-right"></div>
+      </div>
+      <div class="bracket-col">
+        <div class="col-header">Sweet 16</div>
+        <div class="match-list" id="s16-right"></div>
+      </div>
+      <div class="bracket-col">
+        <div class="col-header">Round of 32</div>
+        <div class="match-list" id="r32-right"></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div id="globalAnnouncementContainer"></div>
+
+  <script>
+    let currentDisplayedHeatIndex = 0;
+    let heatsArray = [];
+    let isInitialLoad = true;
+
+    window.onload = function() {
+      fetchData();
+      setInterval(fetchData, 10000); 
+    };
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      var btns = document.querySelectorAll('.nav-btn');
+      btns[0].classList.toggle('active', viewId === 'qualifying');
+      btns[1].classList.toggle('active', viewId === 'playoffs');
+    }
+
+    function fetchData() {
+      google.script.run
+        .withSuccessHandler(function(jsonString) {
+           if (!jsonString) {
+             document.getElementById('errorDisplay').innerText = "Database Alert: Received null response.";
+             document.getElementById('errorDisplay').classList.remove('hidden');
+             return;
+           }
+
+           var data;
+           try {
+             data = JSON.parse(jsonString);
+           } catch(e) {
+             document.getElementById('errorDisplay').innerText = "Data Parse Error: " + e.message;
+             document.getElementById('errorDisplay').classList.remove('hidden');
+             return;
+           }
+
+           if (data.error) {
+             document.getElementById('errorDisplay').innerText = "Database Alert: " + data.error;
+             document.getElementById('errorDisplay').classList.remove('hidden');
+             return; 
+           }
+
+           var d = new Date();
+           document.getElementById('lastSyncTxt').innerText = "Last Sync: " + d.toLocaleTimeString();
+           document.getElementById('loading').classList.add('hidden');
+           document.getElementById('errorDisplay').classList.add('hidden');
+           
+           renderDashboard(data);
+        })
+        .withFailureHandler(function(err){ 
+            document.getElementById('errorDisplay').innerText = "Connection Failed: " + err.message;
+            document.getElementById('errorDisplay').classList.remove('hidden');
+        })
+        .getDashboardData();
+    }
+
+    function renderDashboard(data) {
+      var lbBody = document.getElementById('leaderboardTableBody');
+      lbBody.innerHTML = "";
+      if (!data.leaderboard || data.leaderboard.length === 0) {
+        lbBody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 20px;'>Awaiting first match scores...</td></tr>";
+      } else {
+        data.leaderboard.forEach(function(team, index) {
+          var displayScore = team.data.max === -1 ? "<span style='color:#999; font-size:12px;'>No Recorded Score</span>" : team.data.max;
+          lbBody.innerHTML += `<tr>
+            <td class="rank-col">${index + 1}</td>
+            <td style="font-size:12px; color:#666;">${team.id}</td>
+            <td><strong>${team.name}</strong></td>
+            <td class="score-col">${displayScore}</td>
+          </tr>`;
+          if (index === 31) {
+            lbBody.innerHTML += `<tr class="cut-line-row"><td colspan="4">--- Playoff Cut Line ---</td></tr>`;
+          }
+        });
+      }
+
+      processScheduleData(data.schedule || []);
+
+      document.getElementById('globalAnnouncementContainer').innerHTML = "";
+
+      if(data.brackets) {
+          renderSplitBracketCol('r32-left', data.brackets.r32, 'left');
+          renderSplitBracketCol('s16-left', data.brackets.s16, 'left');
+          renderSplitBracketCol('e8-left',  data.brackets.e8,  'left');
+          
+          renderSplitBracketCol('f4-center', data.brackets.f4, 'center'); 
+          
+          renderSplitBracketCol('e8-right',  data.brackets.e8,  'right');
+          renderSplitBracketCol('s16-right', data.brackets.s16, 'right');
+          renderSplitBracketCol('r32-right', data.brackets.r32, 'right');
+      }
+    }
+
+    function renderSplitBracketCol(containerId, matches, side) {
+      var container = document.getElementById(containerId);
+      container.innerHTML = "";
+      
+      var isFinal4 = (containerId === 'f4-center');
+      var championTeam = null; 
+
+      var filteredMatches = [];
+      if (matches && matches.length > 0) {
+          var mid = Math.ceil(matches.length / 2);
+          if (side === 'left') {
+              filteredMatches = matches.slice(0, mid);
+          } else if (side === 'right') {
+              filteredMatches = matches.slice(mid);
+          } else {
+              filteredMatches = matches; 
+          }
+      }
+      
+      if (!filteredMatches || filteredMatches.length === 0) {
+        container.innerHTML = "<div class='match-card'><div class='pending-txt'>Currently Unseeded</div></div>";
+        return;
+      }
+
+      filteredMatches.forEach(function(m) {
+        var cardHTML = `<div class="match-card">
+                          <div class="match-header">
+                            <span>Track ${m.track} ${m.heat ? '(Heat ' + m.heat + ')' : ''}</span>
+                          </div>`;
+        
+        var displayTeams = [].concat(m.teams);
+        
+        if (m.status === "Complete") {
+           displayTeams.sort(function(a,b) { 
+               var scoreA = isNaN(parseInt(a.score)) ? -1 : parseInt(a.score);
+               var scoreB = isNaN(parseInt(b.score)) ? -1 : parseInt(b.score);
+               
+               if (scoreB !== scoreA) return scoreB - scoreA; 
+               
+               if (b.w.tier1 !== a.w.tier1) return b.w.tier1 - a.w.tier1;
+               if (b.w.tier2 !== a.w.tier2) return b.w.tier2 - a.w.tier2;
+               if (b.w.tier3 !== a.w.tier3) return b.w.tier3 - a.w.tier3;
+               return b.w.tier4 - a.w.tier4;
+           });
+        }
+
+        displayTeams.forEach(function(t, index) {
+          var isAdvancing = false;
+          
+          if (m.status === "Complete") {
+             if (isFinal4) {
+                 isAdvancing = (index === 0); 
+                 if (isAdvancing) championTeam = t;
+             } else {
+                 isAdvancing = (index < 2); 
+             }
+          }
+
+          var fontWeight = isAdvancing ? "bold" : "normal";
+          var txtColor = t.txt || "#000";
+          
+          // --- FIX: NO SCORES SHOWN WHATSOEVER ---
+          var scoreTxt = ""; 
+          if (m.status === "Complete" && isAdvancing) {
+             scoreTxt = isFinal4 ? "🏆" : "✅"; 
+          }
+
+          cardHTML += `<div class="match-team" style="background-color: ${t.color}; color: ${txtColor}; font-weight: ${fontWeight};">
+                         <span class="team-name-truncate">${t.name}</span>
+                         <span class="team-score">${scoreTxt}</span>
+                       </div>`;
+        });
+
+        cardHTML += `</div>`;
+        container.innerHTML += cardHTML;
+      });
+
+      if (isFinal4 && championTeam) {
+          var globalContainer = document.getElementById('globalAnnouncementContainer');
+          globalContainer.innerHTML = `
+            <div class="champion-banner">
+              <div class="champion-title">Congratulations!</div>
+              <div class="champion-name">${championTeam.name}</div>
+            </div>
+          `;
+      }
+    }
+
+    function processScheduleData(rawMatches) {
+      if (rawMatches.length === 0) {
+        document.getElementById('scheduleRenderer').innerHTML = "<div class='heat-container'><h2>No Qualifying Matches Scheduled</h2></div>";
+        document.getElementById('btnPrev').disabled = true;
+        document.getElementById('btnNext').disabled = true;
+        return;
+      }
+
+      var heatMap = {};
+      rawMatches.forEach(function(m) {
+        var key = m.round + "|Heat " + m.heat;
+        if(!heatMap[key]) {
+           heatMap[key] = { round: m.round, heat: m.heat, title: m.round + " - Heat " + m.heat, tracks: [], isFullyComplete: true };
+        }
+        heatMap[key].tracks.push(m);
+        if(m.status !== "Complete") heatMap[key].isFullyComplete = false;
+      });
+
+      heatsArray = Object.values(heatMap);
+
+      if (isInitialLoad) {
+        var logicalActiveIndex = heatsArray.findIndex(h => !h.isFullyComplete);
+        currentDisplayedHeatIndex = logicalActiveIndex === -1 ? heatsArray.length - 1 : logicalActiveIndex;
+        isInitialLoad = false;
+      }
+
+      if (currentDisplayedHeatIndex < 0) currentDisplayedHeatIndex = 0;
+      if (currentDisplayedHeatIndex >= heatsArray.length) currentDisplayedHeatIndex = heatsArray.length - 1;
+
+      renderScheduleUI();
+    }
+
+    function changeHeat(direction) {
+       currentDisplayedHeatIndex += direction;
+       if (currentDisplayedHeatIndex < 0) currentDisplayedHeatIndex = 0;
+       if (currentDisplayedHeatIndex >= heatsArray.length) currentDisplayedHeatIndex = heatsArray.length - 1;
+       renderScheduleUI();
+    }
+
+    function renderScheduleUI() {
+      var container = document.getElementById('scheduleRenderer');
+      var html = "";
+
+      var currentHeat = heatsArray[currentDisplayedHeatIndex];
+      var nextHeat = heatsArray[currentDisplayedHeatIndex + 1];
+
+      document.getElementById('btnPrev').disabled = (currentDisplayedHeatIndex === 0);
+      document.getElementById('btnNext').disabled = (currentDisplayedHeatIndex >= heatsArray.length - 1);
+
+      if (currentHeat) {
+        html += `<div class="heat-container">
+                   <div class="heat-title">
+                     <span>📍 Current Match: ${currentHeat.title}</span>
+                     ${currentHeat.isFullyComplete ? '<span style="color:#2e7d32; font-size:16px;">[ ALL TRACKS COMPLETE ]</span>' : ''}
+                   </div>
+                   <div class="track-grid">`;
+        
+        currentHeat.tracks.sort((a,b) => parseInt(String(a.track).replace(/\D/g,'')) - parseInt(String(b.track).replace(/\D/g,'')));
+        currentHeat.tracks.forEach(t => { html += generateTrackCard(t); });
+        
+        html += `  </div>
+                 </div>`;
+      }
+
+      if (nextHeat) {
+        html += `<div class="heat-container next-heat">
+                   <div class="heat-title" style="color:#666;">⏩ On Deck: ${nextHeat.title}</div>
+                   <div class="track-grid">`;
+        
+        nextHeat.tracks.sort((a,b) => parseInt(String(a.track).replace(/\D/g,'')) - parseInt(String(b.track).replace(/\D/g,'')));
+        nextHeat.tracks.forEach(t => { html += generateTrackCard(t); });
+        
+        html += `  </div>
+                 </div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function generateTrackCard(match) {
+      var statusBadge = match.status === 'Complete' ? '<span class="status-badge-complete">✓ COMPLETED</span>' : '<span class="status-badge-pending">Pending...</span>';
+      var t = match.teams;
+      
+      return `
+        <div class="track-card">
+            <div class="track-header">
+              <span>Track ${match.track}</span>
+              ${statusBadge}
+            </div>
+            <div class="track-team result-yellow"><span>${t.yellow}</span></div>
+            <div class="track-team result-black"><span>${t.black}</span></div>
+            <div class="track-team result-white"><span>${t.white}</span></div>
+            <div class="track-team result-blue"><span>${t.blue}</span></div>
+        </div>`;
+    }
+  </script>
+</body>
+</html>

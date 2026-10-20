@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <style>
+    :root { --gt-gold: #b3a369; --gt-navy: #003057; --bg-color: #f4f4f4; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); margin: 0; color: #333; }
+    
+    .header { background-color: var(--gt-navy); color: white; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; }
+    .header h1 { margin: 0; font-size: 24px; color: var(--gt-gold); }
+    .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.8; }
+
+    .container { padding: 20px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; } /* Added bottom padding for footer */
+    
+    .selector-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid var(--gt-gold); }
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: var(--gt-navy); }
+    select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; background-color: #f9f9f9; }
+    select:disabled { background-color: #eee; cursor: not-allowed; }
+
+    /* Structural Areas */
+    #globalLeaderboardArea { display: none; }
+    #personalArea { display: none; } 
+
+    .rank-card { background: linear-gradient(135deg, var(--gt-navy), #004b87); color: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin-bottom: 20px; display: flex; justify-content: space-around; align-items: center; }
+    .rank-stat { display: flex; flex-direction: column; }
+    .rank-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--gt-gold); margin-bottom: 5px; }
+    .rank-value { font-size: 36px; font-weight: bold; }
+    .cut-line-alert { background-color: #ffebee; color: #c62828; padding: 10px; text-align: center; border-radius: 4px; font-size: 14px; font-weight: bold; margin-bottom: 20px; border: 1px solid #ef9a9a; display: none; }
+
+    .section-title { font-size: 20px; font-weight: bold; color: var(--gt-navy); border-bottom: 2px solid var(--gt-gold); padding-bottom: 5px; margin-bottom: 15px; margin-top: 15px; }
+
+    /* MATCH CARDS */
+    .match-card { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; overflow: hidden; border: 1px solid #ddd; }
+    .match-header { background: #eee; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; font-size: 15px; }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .status-pending { background-color: #e0e0e0; color: #555; }
+    .status-complete { background-color: #2e7d32; color: white; }
+    
+    .match-body { padding: 15px; display: flex; align-items: center; justify-content: space-between; }
+    .color-assignment { display: flex; flex-direction: column; align-items: center; }
+    .color-label { font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+    .color-box { padding: 8px 15px; border-radius: 4px; font-weight: bold; font-size: 16px; border: 1px solid #ccc; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);}
+    
+    .color-YELLOW { background-color: #FFD700; color: #000; }
+    .color-BLACK { background-color: #222222; color: #FFF; border-color: #000;}
+    .color-WHITE { background-color: #FFFFFF; color: #000; }
+    .color-BLUE { background-color: #005A9C; color: #FFF; border-color: #003366;}
+
+    .track-info { text-align: right; }
+    .track-num { font-size: 20px; font-weight: bold; color: var(--gt-navy); }
+    .heat-num { font-size: 14px; color: #666; }
+
+    /* LEADERBOARD STYLES */
+    .lb-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 30px; }
+    .table-wrapper { max-height: 50vh; overflow-y: auto; padding-right: 5px; margin-top: 10px; }
+    .table-wrapper::-webkit-scrollbar { width: 8px; }
+    .table-wrapper::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: #aaa; border-radius: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--gt-navy); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 8px 5px; text-align: left; border-bottom: 1px solid #eee; transition: background-color 0.3s; }
+    th { background-color: #f9f9f9; font-weight: bold; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }
+    .rank-col { width: 30px; font-weight: bold; color: var(--gt-gold); text-align: center; }
+    .score-col { font-weight: bold; text-align: right; font-family: monospace; font-size: 16px;}
+    .cut-line-row td { text-align: center !important; color: #c62828 !important; font-weight: bold; background-color: #ffebee !important; border-top: 2px dashed #c62828 !important; border-bottom: 2px dashed #c62828 !important; letter-spacing: 2px; padding: 12px !important; }
+    
+    .my-team-row { background-color: rgba(179, 163, 105, 0.25) !important; border-left: 4px solid var(--gt-gold); }
+
+    .no-data { text-align: center; color: #888; font-style: italic; padding: 20px; background: white; border-radius: 8px; border: 1px dashed #ccc; }
+
+    /* NEW LINK FOOTER */
+    .dashboard-link-container {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px dashed #ccc;
+    }
+    .dashboard-link-btn {
+      display: inline-block;
+      background-color: var(--gt-navy);
+      color: white;
+      padding: 15px 25px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+      transition: all 0.2s;
+      border: 2px solid var(--gt-gold);
+    }
+    .dashboard-link-btn:hover {
+      background-color: #004b87;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+
+    #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
+    .spinner { border: 6px solid #f3f3f3; border-top: 6px solid var(--gt-navy); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .error-msg { color: #c62828; margin-top: 15px; font-weight: bold; display: none; }
+  </style>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div style="font-weight:bold; color:#003057;">Loading Competition Data...</div>
+    <div id="errorDisplay" class="error-msg"></div>
+  </div>
+
+  <div class="header">
+    <h1>ME 2110 Competitor Hub</h1>
+    <p>Track your schedule, rank, and playoff status.</p>
+  </div>
+
+  <div class="container">
+    
+    <div class="selector-card">
+      <div class="input-group">
+        <label>1. Select Your Lab Section</label>
+        <select id="sectionSelect" onchange="onSectionChange()">
+          <option value="">-- Choose Section --</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>2. Select Your Team</label>
+        <select id="teamSelect" onchange="onTeamChange()" disabled>
+          <option value="">-- Choose Team --</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="personalArea">
+      <div class="rank-card">
+        <div class="rank-stat">
+          <span class="rank-label">Global Rank</span>
+          <span class="rank-value" id="dispRank">-</span>
+        </div>
+        <div class="rank-stat">
+          <span class="rank-label">High Score</span>
+          <span class="rank-value" id="dispScore">-</span>
+        </div>
+      </div>
+      <div id="cutLineAlert" class="cut-line-alert">⚠️ You are currently below the Top 32 Playoff cut-line.</div>
+
+      <div class="section-title">Qualifying Schedule</div>
+      <div id="qualifyingContainer"></div>
+
+      <div class="section-title">Playoff Bracket Status</div>
+      <div id="playoffContainer"></div>
+    </div>
+
+    <div id="globalLeaderboardArea">
+      <div class="section-title">Competition Leaderboard</div>
+      <div class="lb-container">
+        <div class="table-wrapper" id="scrollWrapper">
+          <table>
+            <thead>
+              <tr><th class="rank-col">#</th><th>ID</th><th>Team Name</th><th class="score-col">High Score</th></tr>
+            </thead>
+            <tbody id="leaderboardTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-link-container">
+      <a href="https://script.google.com/macros/s/AKfycbx8SyJnlz-YRfjIKqCbsnw8pyEX6vp9C1tP2ch8_p5SxSiNQ0VoL8szS7TNY2KU3LbW/exec" target="_blank" class="dashboard-link-btn">
+        🏆 View Live Playoff Bracket 🏆
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    let tournamentData = null;
+
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(function(jsonString) {
+           try {
+             tournamentData = JSON.parse(jsonString);
+             if (tournamentData.error) throw new Error(tournamentData.error);
+             
+             populateSections();
+             renderGlobalLeaderboard(); 
+             
+             document.getElementById('loading').style.display = 'none';
+             document.getElementById('globalLeaderboardArea').style.display = 'block';
+           } catch(e) {
+             showError("Data Error: " + e.message);
+           }
+        })
+        .withFailureHandler(function(err){ showError("Connection Failed: " + err.message); })
+        .getCompetitorData();
+    };
+
+    function showError(msg) {
+        document.querySelector('.spinner').style.display = 'none';
+        var errEl = document.getElementById('errorDisplay');
+        errEl.innerText = msg;
+        errEl.style.display = 'block';
+    }
+
+    function populateSections() {
+      var secSelect = document.getElementById('sectionSelect');
+      var sections = Object.keys(tournamentData.sections).sort();
+      sections.forEach(function(sec) {
+        var opt = document.createElement('option');
+        opt.value = sec;
+        opt.text = "Section " + sec;
+        secSelect.appendChild(opt);
+      });
+    }
+
+    function renderGlobalLeaderboard() {
+      var lbBody = document.getElementById('leaderboardTableBody');
+      lbBody.innerHTML = "";
+      if (!tournamentData.leaderboard || tournamentData.leaderboard.length === 0) {
+        lbBody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 20px;'>Awaiting first match scores...</td></tr>";
+      } else {
+        tournamentData.leaderboard.forEach(function(team, index) {
+          var displayScore = team.max === -1 ? "<span style='color:#999; font-size:12px;'>No Recorded Score</span>" : team.max;
+          
+          lbBody.innerHTML += `<tr id="row-${team.id}">
+            <td class="rank-col">${index + 1}</td>
+            <td style="font-size:12px; color:#666;">${team.id}</td>
+            <td><strong>${team.name || "Unknown Team"}</strong></td>
+            <td class="score-col">${displayScore}</td>
+          </tr>`;
+          
+          if (index === 31) {
+            lbBody.innerHTML += `<tr class="cut-line-row"><td colspan="4">--- Playoff Cut Line ---</td></tr>`;
+          }
+        });
+      }
+    }
+
+    function onSectionChange() {
+      var sec = document.getElementById('sectionSelect').value;
+      var teamSelect = document.getElementById('teamSelect');
+      teamSelect.innerHTML = '<option value="">-- Choose Team --</option>';
+      document.getElementById('personalArea').style.display = 'none';
+      clearHighlights();
+
+      if (!sec) {
+        teamSelect.disabled = true;
+        return;
+      }
+
+      var teams = tournamentData.sections[sec] || [];
+      teams.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.text = t.id + " : " + t.name;
+        teamSelect.appendChild(opt);
+      });
+      teamSelect.disabled = false;
+    }
+
+    function clearHighlights() {
+       var highlighted = document.querySelectorAll('.my-team-row');
+       highlighted.forEach(el => el.classList.remove('my-team-row'));
+    }
+
+    function onTeamChange() {
+      var teamId = document.getElementById('teamSelect').value;
+      if (!teamId) {
+        document.getElementById('personalArea').style.display = 'none';
+        clearHighlights();
+        return;
+      }
+      renderUserDashboard(teamId);
+    }
+
+    function renderUserDashboard(teamId) {
+      document.getElementById('personalArea').style.display = 'block';
+
+      // 1. Personal Stats Summary
+      var teamRankObj = tournamentData.leaderboard.find(t => t.id === teamId);
+      if (teamRankObj) {
+          document.getElementById('dispRank').innerText = "#" + teamRankObj.rank;
+          document.getElementById('dispScore').innerText = teamRankObj.max === -1 ? "-" : teamRankObj.max;
+          
+          if (teamRankObj.max !== -1 && teamRankObj.rank > 32) {
+              document.getElementById('cutLineAlert').style.display = 'block';
+          } else {
+              document.getElementById('cutLineAlert').style.display = 'none';
+          }
+      } else {
+          document.getElementById('dispRank').innerText = "N/A";
+          document.getElementById('dispScore').innerText = "N/A";
+          document.getElementById('cutLineAlert').style.display = 'none';
+      }
+
+      // 2. Highlight Row in the Global Leaderboard
+      clearHighlights();
+      var targetRow = document.getElementById('row-' + teamId);
+      if (targetRow) {
+          targetRow.classList.add('my-team-row');
+          var wrapper = document.getElementById('scrollWrapper');
+          if (wrapper) {
+               setTimeout(() => {
+                   wrapper.scrollTo({
+                      top: targetRow.offsetTop - (wrapper.offsetHeight / 2) + 20,
+                      behavior: 'smooth'
+                   });
+               }, 100);
+          }
+      }
+
+      // 3. Qualifying Schedule
+      var qContainer = document.getElementById('qualifyingContainer');
+      qContainer.innerHTML = "";
+      var myQualMatches = tournamentData.matches.filter(m => m.y === teamId || m.bk === teamId || m.w === teamId || m.bl === teamId);
+      
+      if (myQualMatches.length === 0) {
+          qContainer.innerHTML = "<div class='no-data'>No qualifying matches assigned yet.</div>";
+      } else {
+          myQualMatches.forEach(function(m) { qContainer.innerHTML += createMatchCard(m, teamId); });
+      }
+
+      // 4. Playoff Status
+      var pContainer = document.getElementById('playoffContainer');
+      pContainer.innerHTML = "";
+      var myPlayoffMatches = tournamentData.brackets.filter(m => m.y === teamId || m.bk === teamId || m.w === teamId || m.bl === teamId);
+      
+      if (myPlayoffMatches.length === 0) {
+          pContainer.innerHTML = "<div class='no-data'>Not currently seeded in a playoff bracket.</div>";
+      } else {
+          var roundOrder = { "Final 4": 4, "Elite 8": 3, "Sweet 16": 2, "Round of 32": 1 };
+          myPlayoffMatches.sort((a,b) => roundOrder[b.round] - roundOrder[a.round]);
+          myPlayoffMatches.forEach(function(m) { pContainer.innerHTML += createMatchCard(m, teamId); });
+      }
+    }
+
+    function createMatchCard(m, myTeamId) {
+      var badgeClass = m.status === 'Complete' ? 'status-complete' : 'status-pending';
+      var badgeText = m.status === 'Complete' ? '✓ Completed' : 'Pending...';
+      
+      var myColorStr = "";
+      if (m.y === myTeamId) myColorStr = "YELLOW";
+      if (m.bk === myTeamId) myColorStr = "BLACK";
+      if (m.w === myTeamId) myColorStr = "WHITE";
+      if (m.bl === myTeamId) myColorStr = "BLUE";
+
+      return `
+        <div class="match-card">
+          <div class="match-header">
+            <span>${m.round}</span>
+            <span class="status-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="match-body">
+            <div class="color-assignment">
+              <span class="color-label">Your Zone Color</span>
+              <div class="color-box color-${myColorStr}">${myColorStr}</div>
+            </div>
+            <div class="track-info">
+              <div class="track-num">Track ${m.track}</div>
+              <div class="heat-num">Heat ${m.heat}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
